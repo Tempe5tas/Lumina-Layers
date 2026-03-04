@@ -6,6 +6,7 @@ Coordinates modules to complete image-to-3D model conversion.
 
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import deque
 import numpy as np
 import cv2
@@ -1015,27 +1016,48 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     num_materials = len(slot_names)
     print(f"[CONVERTER] Generating meshes for {num_materials} materials...")
 
+    max_workers = min(4, num_materials)
+    parallel_enabled = max_workers > 1 and os.getenv("LUMINA_DISABLE_PARALLEL_MESH", "0") != "1"
+    mesh_results = {}
+    mesh_errors = {}
+    if parallel_enabled:
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            future_map = {
+                pool.submit(mesher.generate_mesh, full_matrix, mat_id, target_h): mat_id
+                for mat_id in range(num_materials)
+            }
+            for future in as_completed(future_map):
+                mat_id = future_map[future]
+                try:
+                    mesh_results[mat_id] = future.result()
+                except Exception as e:
+                    mesh_errors[mat_id] = e
+    else:
+        for mat_id in range(num_materials):
+            try:
+                mesh_results[mat_id] = mesher.generate_mesh(full_matrix, mat_id, target_h)
+            except Exception as e:
+                mesh_errors[mat_id] = e
+
     for mat_id in range(num_materials):
-        try:
-            mesh = mesher.generate_mesh(full_matrix, mat_id, target_h)
-            if mesh:
-                # [ROLLBACK] Removed smart simplification as per user request
-                # Warning: Large models may produce huge 3MF files
-                mesh.apply_transform(transform)
-                mesh.visual.face_colors = preview_colors[mat_id]
-                name = slot_names[mat_id]
-                mesh.metadata['name'] = name
-                scene.add_geometry(
-                    mesh, 
-                    node_name=name, 
-                    geom_name=name
-                )
-                valid_slot_names.append(name)
-                print(f"[CONVERTER] Added mesh for {name}")
-        except Exception as e:
-            # Log error and continue with other materials (Requirement 8.1)
+        if mat_id in mesh_errors:
+            e = mesh_errors[mat_id]
             print(f"[CONVERTER] Error generating mesh for material {mat_id} ({slot_names[mat_id]}): {e}")
             print(f"[CONVERTER] Continuing with other materials...")
+            continue
+        mesh = mesh_results.get(mat_id)
+        if mesh:
+            mesh.apply_transform(transform)
+            mesh.visual.face_colors = preview_colors[mat_id]
+            name = slot_names[mat_id]
+            mesh.metadata['name'] = name
+            scene.add_geometry(
+                mesh, 
+                node_name=name, 
+                geom_name=name
+            )
+            valid_slot_names.append(name)
+            print(f"[CONVERTER] Added mesh for {name}")
     
     # Conditionally generate backing mesh (only when separate_backing=True)
     # Error handling for backing mesh generation (Requirement 8.1, 8.3)

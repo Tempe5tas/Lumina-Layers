@@ -212,22 +212,10 @@ class BambuStudio3MFWriter:
             xml_lines.append(f'  <object id="{idx}" type="model">')
             xml_lines.append('   <mesh>')
             xml_lines.append('    <vertices>')
-            
-            # Add vertices WITHOUT color
-            for vertex in mesh.vertices:
-                xml_lines.append(
-                    f'     <vertex x="{vertex[0]:.6f}" y="{vertex[1]:.6f}" z="{vertex[2]:.6f}"/>'
-                )
-            
+            xml_lines.extend(self._format_vertices(mesh.vertices))
             xml_lines.append('    </vertices>')
             xml_lines.append('    <triangles>')
-            
-            # Add triangles
-            for face in mesh.faces:
-                xml_lines.append(
-                    f'     <triangle v1="{face[0]}" v2="{face[1]}" v3="{face[2]}"/>'
-                )
-            
+            xml_lines.extend(self._format_triangles(mesh.faces))
             xml_lines.append('    </triangles>')
             xml_lines.append('   </mesh>')
             xml_lines.append('  </object>')
@@ -244,6 +232,44 @@ class BambuStudio3MFWriter:
         output_path = os.path.join(tmpdir, '3D', 'Objects', 'object_1.model')
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(xml_content)
+
+    @staticmethod
+    def _format_vertices(vertices):
+        if len(vertices) == 0:
+            return []
+        verts = np.asarray(vertices, dtype=np.float64)
+        x = np.char.mod('%.6f', verts[:, 0])
+        y = np.char.mod('%.6f', verts[:, 1])
+        z = np.char.mod('%.6f', verts[:, 2])
+        lines = (
+            '     <vertex x="'
+            + x
+            + '" y="'
+            + y
+            + '" z="'
+            + z
+            + '"/>'
+        )
+        return lines.tolist()
+
+    @staticmethod
+    def _format_triangles(faces):
+        if len(faces) == 0:
+            return []
+        f = np.asarray(faces, dtype=np.int64)
+        v1 = np.char.mod('%d', f[:, 0])
+        v2 = np.char.mod('%d', f[:, 1])
+        v3 = np.char.mod('%d', f[:, 2])
+        lines = (
+            '     <triangle v1="'
+            + v1
+            + '" v2="'
+            + v2
+            + '" v3="'
+            + v3
+            + '"/>'
+        )
+        return lines.tolist()
     
     def _write_single_object(self, tmpdir: str, obj_id: int, mesh: trimesh.Trimesh, name: str, color_rgb: tuple):
         """Write a single object .model file - matching BambuStudio format exactly"""
@@ -537,12 +563,13 @@ class BambuStudio3MFWriter:
     
     def _create_zip(self, tmpdir: str):
         """Package all files into a ZIP archive (.3mf)"""
-        with zipfile.ZipFile(self.output_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        with zipfile.ZipFile(self.output_path, 'w', compression=zipfile.ZIP_STORED) as zf:
             for root, dirs, files in os.walk(tmpdir):
                 for file in files:
                     file_path = os.path.join(root, file)
                     arcname = os.path.relpath(file_path, tmpdir)
-                    zf.write(file_path, arcname)
+                    with open(file_path, 'rb') as f:
+                        zf.writestr(arcname, f.read())
     
     @staticmethod
     def _generate_uuid() -> str:
