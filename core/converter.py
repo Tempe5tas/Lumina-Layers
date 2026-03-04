@@ -1162,9 +1162,22 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             coating_layers = max(1, int(round(coating_height_mm / PrinterConfig.LAYER_HEIGHT)))
             print(f"[CONVERTER] 🪟 Generating coating: height={coating_height_mm}mm ({coating_layers} layers), bottom side")
 
+            # Determine coating coverage area
+            coating_mask = mask_solid.copy()
+            
+            # [FIX] If outline is enabled, extend coating to cover outline area as well
+            if enable_outline:
+                print(f"[CONVERTER] 🔲 Extending coating to cover outline area (width={outline_width}mm)")
+                # Dilate mask to include outline area
+                outline_width_px = max(1, int(round(outline_width / pixel_scale)))
+                kernel = np.ones((3, 3), np.uint8)
+                mask_uint8 = mask_solid.astype(np.uint8) * 255
+                dilated_mask = cv2.dilate(mask_uint8, kernel, iterations=outline_width_px)
+                coating_mask = (dilated_mask > 0)
+
             # Build a small voxel matrix for the coating: coating_layers × H × W
             coating_matrix = np.full((coating_layers, target_h, target_w), -1, dtype=int)
-            coating_slice = np.where(mask_solid, 0, -1).astype(int)
+            coating_slice = np.where(coating_mask, 0, -1).astype(int)
             coating_matrix[:] = coating_slice[np.newaxis, :, :]
 
             coating_mesh = mesher.generate_mesh(coating_matrix, 0, target_h)
@@ -1203,6 +1216,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 coating_mm = coating_layers * PrinterConfig.LAYER_HEIGHT
                 outline_thickness_mm += coating_mm
                 outline_z_offset = -coating_mm
+                print(f"[CONVERTER] 🔲 Outline extended to cover coating: total_thickness={outline_thickness_mm}mm")
+            
             print(f"[CONVERTER] 🔲 Generating outline: width={outline_width}mm, thickness={outline_thickness_mm}mm (z_offset={outline_z_offset}mm)")
             
             outline_mesh = _generate_outline_mesh(
