@@ -152,6 +152,11 @@ Converts images into printable 3D models using calibrated data.
 
 ## What's New in v1.5.7 🚀
 
+### Recent Bug Fixes
+
+- 🐛 **Fixed Calibration Import Error** - Resolved `NameError` when generating BW calibration boards by adding missing import for `safe_fix_3mf_names`
+- 🔧 **Fixed Coating/Outline Compatibility** - Transparent coating now properly extends to cover outline base layer when both features are enabled simultaneously
+
 ### 6-Color and 8-Color Mode Support
 
 - 🎨 **6-Color Extended Mode** - 1296 colors (6 base filaments × 3 layers) for wider color gamut
