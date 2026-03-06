@@ -475,7 +475,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                          enable_cloisonne=False, wire_width_mm=0.4,
                          wire_height_mm=0.4,
                          free_color_set=None,
-                         enable_coating=False, coating_height_mm=0.08):
+                         enable_coating=False, coating_height_mm=0.08,
+                         progress=None):
     """
     Main conversion function: Convert image to 3D model.
     
@@ -513,6 +514,10 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     Returns:
         Tuple of (3mf_path, glb_path, preview_image, status_message)
     """
+    def _prog(val: float, desc: str = ""):
+        if progress is not None:
+            progress(val, desc=desc)
+
     # Input validation
     if image_path is None:
         return None, None, None, "[ERROR] Please upload an image", None
@@ -564,13 +569,15 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             vec_processor = VectorProcessor(actual_lut_path, color_mode)
 
             # Convert SVG to 3D scene
+            _prog(0.05, "SVG 解析与几何处理中... | Parsing SVG...")
             mesh_t0 = time.perf_counter()
             scene = vec_processor.svg_to_mesh(
                 svg_path=image_path,
                 target_width_mm=target_width_mm,
                 thickness_mm=spacer_thick,
                 structure_mode=structure_mode,
-                color_replacements=vector_replacements
+                color_replacements=vector_replacements,
+                progress_fn=_prog,
             )
             vector_timing["mesh_total_s"] = time.perf_counter() - mesh_t0
             if isinstance(getattr(vec_processor, "last_stage_timings", None), dict):
@@ -582,6 +589,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 return None, None, None, "[ERROR] Vector mesh generation failed: no valid geometry generated", None
             
             # 2. Export 3MF (unified Bambu metadata path)
+            _prog(0.72, "导出 3MF 中... | Exporting 3MF...")
             base_name = os.path.splitext(os.path.basename(image_path))[0]
             out_path = os.path.join(OUTPUT_DIR, generate_model_filename(base_name, modeling_mode, color_mode))
 
@@ -639,6 +647,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             vector_timing["export_3mf_s"] = time.perf_counter() - export_t0
             
             # 4. Generate GLB Preview
+            _prog(0.82, "生成 3D 预览中... | Generating 3D preview...")
             glb_path = None
             glb_t0 = time.perf_counter()
             try:
@@ -650,6 +659,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             vector_timing["export_glb_s"] = time.perf_counter() - glb_t0
             
             # 5. [FIX] Generate 2D Preview Image from SVG
+            _prog(0.90, "生成 2D 预览中... | Generating 2D preview...")
             preview_img = None
             preview_t0 = time.perf_counter()
             skip_heavy_preview = os.getenv("LUMINA_VECTOR_SKIP_2D_PREVIEW", "0") == "1"
@@ -787,6 +797,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
         backing_color_id = 0
     
     # Step 1: Image Processing
+    _prog(0.05, "图像处理与 LUT 匹配中... | Processing image...")
     try:
         processor = LuminaImageProcessor(actual_lut_path, color_mode)
         processor.enable_cleanup = enable_cleanup
@@ -1006,6 +1017,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             return None, None, None, f"[ERROR] Voxel matrix generation failed: {fallback_error}", None
     
     # Step 6: Generate 3D Meshes
+    _prog(0.30, "生成 3D 网格中... | Generating meshes...")
     scene = trimesh.Scene()
     
     transform = np.eye(4)
@@ -1328,6 +1340,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
         for geom_name in list(scene.geometry.keys()):
             scene.geometry[geom_name].apply_transform(x_mirror_again)
 
+    _prog(0.50, "导出 3MF 中... | Exporting 3MF...")
     base_name = os.path.splitext(os.path.basename(image_path))[0]
     out_path = os.path.join(OUTPUT_DIR, generate_model_filename(base_name, modeling_mode, color_mode))
     
@@ -1403,6 +1416,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
         )
     
     # Step 9: Generate 3D Preview
+    _prog(0.90, "生成 3D 预览中... | Generating 3D preview...")
     preview_mesh = _create_preview_mesh(
         matched_rgb, mask_solid, total_layers,
         backing_color_id=backing_color_id,
@@ -2941,7 +2955,8 @@ def generate_final_model(image_path, lut_path, target_width_mm, spacer_thick,
                         enable_cloisonne=False, wire_width_mm=0.4,
                         wire_height_mm=0.4,
                         free_color_set=None,
-                        enable_coating=False, coating_height_mm=0.08):
+                        enable_coating=False, coating_height_mm=0.08,
+                        progress=None):
     """
     Wrapper function for generating final model.
     
@@ -3001,7 +3016,8 @@ def generate_final_model(image_path, lut_path, target_width_mm, spacer_thick,
         wire_height_mm=wire_height_mm,
         free_color_set=free_color_set,
         enable_coating=enable_coating,
-        coating_height_mm=coating_height_mm
+        coating_height_mm=coating_height_mm,
+        progress=progress,
     )
 
 

@@ -987,6 +987,7 @@ def process_batch_generation(batch_files, is_batch, single_image, lut_path, targ
             structure_mode=structure_mode,
             auto_bg=auto_bg,
             bg_tol=bg_tol,
+            progress=progress,
             color_mode=color_mode,
             add_loop=add_loop,
             loop_width=loop_width,
@@ -4148,7 +4149,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
         # Resolve UI radio value to backend height_mode parameter
         height_mode = resolve_height_mode(radio_height_mode)
 
-        progress(0.3, desc="生成3MF模型中... | Generating 3MF model...")
+        progress(0.0, desc="开始生成... | Starting...")
         return process_batch_generation(
             batch_files, is_batch, single_image, lut_path, target_width_mm,
             spacer_thick, structure_mode, auto_bg, bg_tol, color_mode,
