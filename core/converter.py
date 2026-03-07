@@ -1512,11 +1512,16 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     
     # Output detailed timing for HiFi mode
     if _hifi_timings:
+        image_proc_s = _hifi_timings.get('image_proc_s', 0.0)
+        mesh_gen_s = _hifi_timings.get('mesh_gen_s', 0.0)
+        export_3mf_s = _hifi_timings.get('export_3mf_s', 0.0)
+        total_s = image_proc_s + mesh_gen_s + export_3mf_s
         print(
             "[CONVERTER] HiFi timings (s): "
-            f"image_proc={_hifi_timings.get('image_proc_s', 0.0):.3f}, "
-            f"mesh_gen={_hifi_timings.get('mesh_gen_s', 0.0):.3f}, "
-            f"export_3mf={_hifi_timings.get('export_3mf_s', 0.0):.3f}"
+            f"image_proc={image_proc_s:.3f}, "
+            f"mesh_gen={mesh_gen_s:.3f}, "
+            f"export_3mf={export_3mf_s:.3f}, "
+            f"total={total_s:.3f}"
         )
     
     mode_name = mode_info['mode'].get_display_name()
