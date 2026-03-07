@@ -11,7 +11,14 @@ import cv2
 from PIL import Image
 from scipy.spatial import KDTree
 
-from config import PrinterConfig, ModelingMode, ColorSystem
+from config import PrinterConfig, ModelingMode, ColorSystem, get_asset_path
+
+# HEIC/HEIF support (optional dependency)
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except ImportError:
+    pass
 
 # SVG support (optional dependency)
 try:
@@ -274,13 +281,7 @@ class LuminaImageProcessor:
             print("[IMAGE_PROCESSOR] Detected 8-Color Max mode")
             
             # Load pre-generated 8-color stacks
-            import sys
-            if getattr(sys, 'frozen', False):
-                # Running as compiled executable
-                stacks_path = os.path.join(sys._MEIPASS, 'assets', 'smart_8color_stacks.npy')
-            else:
-                # Running as script
-                stacks_path = 'assets/smart_8color_stacks.npy'
+            stacks_path = get_asset_path('smart_8color_stacks.npy')
             
             smart_stacks = np.load(stacks_path).tolist()
             

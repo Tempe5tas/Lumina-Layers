@@ -202,7 +202,7 @@ class BambuStudio3MFWriter:
             f.write(rels_content)
     
     def _write_object_files(self, tmpdir: str):
-        """Write object_1.model - matching LD format (no UUIDs)"""
+        """Write object_1.model - matching LD format (no UUIDs), streaming I/O for large meshes."""
         output_path = os.path.join(tmpdir, '3D', 'Objects', 'object_1.model')
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
@@ -217,6 +217,7 @@ class BambuStudio3MFWriter:
                 f.write('    </vertices>\n')
                 f.write('    <triangles>\n')
                 self._write_triangles_stream(f, mesh.faces)
+
                 f.write('    </triangles>\n')
                 f.write('   </mesh>\n')
                 f.write('  </object>\n')
@@ -224,6 +225,7 @@ class BambuStudio3MFWriter:
             f.write(' </resources>\n')
             f.write(' <build/>\n')
             f.write('</model>\n')
+<<<<<<< HEAD
 
     @staticmethod
     def _write_vertices_stream(stream, vertices):
@@ -326,7 +328,7 @@ class BambuStudio3MFWriter:
             + '"/>'
         )
         return lines.tolist()
-    
+
     def _write_single_object(self, tmpdir: str, obj_id: int, mesh: trimesh.Trimesh, name: str, color_rgb: tuple):
         """Write a single object .model file - matching BambuStudio format exactly"""
         

@@ -79,6 +79,13 @@ from .callbacks import (
     on_merge_revert,
 )
 
+# Supported image file types for Gradio upload components.
+# Centralized list so that adding a new format only requires one change.
+SUPPORTED_IMAGE_FILE_TYPES: list[str] = [
+    ".jpg", ".jpeg", ".png", ".bmp",
+    ".gif", ".webp", ".heic", ".heif",
+]
+
 # Runtime-injected i18n keys (avoids editing core/i18n.py).
 if hasattr(I18n, 'TEXTS'):
     I18n.TEXTS.update({
@@ -955,7 +962,7 @@ def process_batch_generation(batch_files, is_batch, single_image, lut_path, targ
         tuple: (file_or_zip_path, model3d_value, preview_image, status_text).
     """
     # Handle None modeling_mode (use default)
-    if modeling_mode is None:
+    if modeling_mode is None or modeling_mode == "none":
         modeling_mode = ModelingMode.HIGH_FIDELITY
     else:
         modeling_mode = ModelingMode(modeling_mode)
@@ -2029,12 +2036,13 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
                 image_mode=None,  # Auto-detect mode to support both JPEG and PNG
                 height=400,
                 visible=True,
-                elem_id="conv-image-input"
+                elem_id="conv-image-input",
+                file_types=SUPPORTED_IMAGE_FILE_TYPES,
             )
             components['file_conv_batch_input'] = gr.File(
                 label=I18n.get('conv_batch_input', lang),
                 file_count="multiple",
-                file_types=["image"],
+                file_types=SUPPORTED_IMAGE_FILE_TYPES,
                 visible=False
             )
             components['md_conv_params_section'] = gr.Markdown(I18n.get('conv_params_section', lang))
@@ -2110,11 +2118,12 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
                 with gr.Row(visible=False) as conv_heightmap_row:
                     components['image_conv_heightmap'] = gr.Image(
                         type="filepath",
-                        label="上传高度图 | Upload Heightmap (PNG/JPG/BMP)",
+                        label="上传高度图 | Upload Heightmap (PNG/JPG/BMP/HEIC)",
                         visible=True,
                         height=200,
                         sources=["upload"],
-                        interactive=True
+                        interactive=True,
+                        file_types=SUPPORTED_IMAGE_FILE_TYPES,
                     )
                     components['image_conv_heightmap_preview'] = gr.Image(
                         label="高度图预览 | Heightmap Preview",
@@ -3086,6 +3095,11 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
             fn=detect_image_type,
             inputs=[components['image_conv_image_label']],
             outputs=[components['radio_conv_modeling_mode']]
+    ).then(
+            # 清空已生成的 3MF 文件，强制下次点击切片按钮时重新生成
+            fn=lambda: None,
+            inputs=None,
+            outputs=[components['file_conv_download_file']]
     )
     components['slider_conv_width'].input(
             fn=calc_height_from_width,
@@ -4266,6 +4280,46 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
         outputs=[components['dropdown_conv_slicer'], conv_slicer_dropdown_vis]
     )
 
+    # ========== Invalidate cached 3MF when any generation parameter changes ==========
+    # When user changes image, dimensions, color mode, modeling mode, or any other
+    # parameter that affects the output, clear the cached 3MF file so the slicer
+    # button will trigger a fresh generation instead of opening the stale model.
+    _invalidate_fn = lambda: None  # Returns None to clear file component
+
+    _param_components_change = [
+        components['slider_conv_width'],
+        components['slider_conv_thickness'],
+        components['radio_conv_structure'],
+        components['checkbox_conv_auto_bg'],
+        components['slider_conv_tolerance'],
+        components['radio_conv_color_mode'],
+        components['radio_conv_modeling_mode'],
+        components['slider_conv_quantize_colors'],
+        components['checkbox_conv_loop_enable'],
+        components['slider_conv_loop_width'],
+        components['slider_conv_loop_length'],
+        components['slider_conv_loop_hole'],
+        components['checkbox_conv_separate_backing'],
+        components['checkbox_conv_relief_mode'],
+        components['checkbox_conv_cleanup'],
+        components['checkbox_conv_outline_enable'],
+        components['slider_conv_outline_width'],
+        components['checkbox_conv_cloisonne_enable'],
+        components['slider_conv_wire_width'],
+        components['slider_conv_wire_height'],
+        components['checkbox_conv_coating_enable'],
+        components['slider_conv_coating_height'],
+        components['slider_conv_auto_height_max'],
+        components['radio_conv_auto_height_mode'],
+    ]
+
+    for comp in _param_components_change:
+        comp.change(
+            fn=_invalidate_fn,
+            inputs=None,
+            outputs=[components['file_conv_download_file']]
+        )
+
     def on_open_slicer_click(file_obj, slicer_id, batch_files, is_batch, single_image, lut_path, 
                             target_width_mm, spacer_thick, structure_mode, auto_bg, bg_tol, color_mode,
                             add_loop, loop_width, loop_length, loop_hole, loop_pos,
@@ -4605,7 +4659,8 @@ def create_extractor_tab_content(lang: str) -> dict:
             ext_img_in = gr.Image(
                 label=I18n.get('ext_photo', lang),
                 type="numpy",
-                interactive=True
+                interactive=True,
+                file_types=SUPPORTED_IMAGE_FILE_TYPES,
             )
                 
             with gr.Row():
