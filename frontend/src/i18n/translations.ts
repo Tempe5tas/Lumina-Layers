@@ -1895,6 +1895,22 @@ export const translations: Record<string, Record<"zh" | "en", string>> = {
     zh: "双击取消收藏",
     en: "Double-click to unfavorite",
   },
+  lut_grid_mode_swatch: {
+    zh: "色块",
+    en: "Swatch",
+  },
+  lut_grid_mode_card: {
+    zh: "色卡",
+    en: "Card",
+  },
+  lut_grid_card_a: {
+    zh: "色卡 A",
+    en: "Card A",
+  },
+  lut_grid_card_b: {
+    zh: "色卡 B",
+    en: "Card B",
+  },
 
   // ==================== Replace Confirmation ====================
   replace_confirm_btn: {
