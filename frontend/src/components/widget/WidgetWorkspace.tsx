@@ -8,7 +8,7 @@
  * 在拖拽结束时计算吸附，并管理 z-index 分层以与 Three.js 共存。
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -43,6 +43,7 @@ import { useConverterDataInit } from '../../hooks/useConverterDataInit';
 import { useI18n } from '../../i18n/context';
 import type { WidgetId } from '../../types/widget';
 import type { ReactNode, ComponentType } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 /**
  * Map from WidgetId to its content component.
@@ -79,16 +80,19 @@ interface WidgetWorkspaceProps {
 export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
   const { t } = useI18n();
   const moveWidget = useWidgetStore((s) => s.moveWidget);
+  const setWidgetPositions = useWidgetStore((s) => s.setWidgetPositions);
   const snapAndReorder = useWidgetStore((s) => s.snapAndReorder);
   const setDragging = useWidgetStore((s) => s.setDragging);
   const isDragging = useWidgetStore((s) => s.isDragging);
   const activeWidgetId = useWidgetStore((s) => s.activeWidgetId);
   const activeTab = useWidgetStore((s) => s.activeTab);
-  const widgets = useWidgetStore((s) => s.widgets);
 
   // Filter registry to only show widgets for the active tab
   const activeWidgetIds = TAB_WIDGET_MAP[activeTab];
   const activeRegistry = WIDGET_REGISTRY.filter((c) => activeWidgetIds.includes(c.id));
+  const activeWidgets = useWidgetStore(
+    useShallow((s) => activeWidgetIds.map((id) => s.widgets[id]))
+  );
 
   // Initialize converter data (LUT list, bed sizes) on mount
   useConverterDataInit();
@@ -98,9 +102,13 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
   const rightDockRef = useRef<HTMLDivElement>(null);
   const dragPositionRef = useRef<{ x: number; y: number } | null>(null);
   const dragSourceRef = useRef<{ edge: 'left' | 'right'; scrollTop: number } | null>(null);
+  const insertPreviewRef = useRef<InsertPreviewState | null>(null);
   const isDraggingRef = useRef(false);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [insertPreview, setInsertPreview] = useState<InsertPreviewState | null>(null);
+  const activeWidgetMap = useMemo(() => {
+    const map = new Map(activeWidgets.map((widget) => [widget.id, widget]));
+    return map;
+  }, [activeWidgets]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -139,16 +147,18 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
     // Re-read state after potential snapToEdge calls
     const updatedState = useWidgetStore.getState();
     const updatedTabWidgets = currentTabIds.map((id) => updatedState.widgets[id]);
+    const batchedPositions: Partial<Record<WidgetId, { x: number; y: number }>> = {};
     for (const edge of ['left', 'right'] as const) {
       const stackWidgets = updatedTabWidgets.filter((w) => w.snapEdge === edge && w.visible);
       if (stackWidgets.length > 0) {
         const positions = computeStackPositions(stackWidgets, edge, width, measuredHeights);
         positions.forEach((pos, id) => {
-          useWidgetStore.getState().moveWidget(id, pos);
+          batchedPositions[id] = pos;
         });
       }
     }
-  }, []);
+    setWidgetPositions(batchedPositions);
+  }, [setWidgetPositions]);
 
   // ResizeObserver to detect widget content height changes (e.g. checkbox
   // toggling extra options) and recalculate stack positions automatically.
@@ -233,12 +243,11 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
-  const leftRegistry = activeRegistry.filter((config) => widgets[config.id].snapEdge !== 'right');
-  const rightRegistry = activeRegistry.filter((config) => widgets[config.id].snapEdge === 'right');
+  const leftRegistry = activeRegistry.filter((config) => activeWidgetMap.get(config.id)?.snapEdge !== 'right');
+  const rightRegistry = activeRegistry.filter((config) => activeWidgetMap.get(config.id)?.snapEdge === 'right');
 
   const stackHeight = (edge: 'left' | 'right') => {
-    const stackWidgets = activeWidgetIds
-      .map((id) => widgets[id])
+    const stackWidgets = activeWidgets
       .filter((w) => w.visible && (edge === 'left' ? w.snapEdge !== 'right' : w.snapEdge === 'right'))
       .sort((a, b) => a.stackOrder - b.stackOrder);
     if (stackWidgets.length === 0) return 0;
@@ -329,7 +338,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
       const sourceEdge = widget?.snapEdge === 'right' ? 'right' : 'left';
       lockDockHorizontalScroll(sourceEdge);
       dragSourceRef.current = { edge: sourceEdge, scrollTop: getDockScrollTop(sourceEdge) };
-      setInsertPreview(null);
+      insertPreviewRef.current = null;
       isDraggingRef.current = true;
       setDragging(true, id);
     },
@@ -354,24 +363,21 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
         const contentDropY = toEdgeContentY(newY, targetEdge);
         const insertion = computeInsertion(id, targetEdge, contentDropY);
         const visualLineY = Math.max(0, insertion.lineY - getDockScrollTop(targetEdge));
-
-        setInsertPreview((prev) => {
-          if (
-            prev &&
-            prev.edge === targetEdge &&
-            prev.lineY === visualLineY &&
-            prev.upperId === insertion.upperId &&
-            prev.lowerId === insertion.lowerId
-          ) {
-            return prev;
-          }
-          return {
+        const prev = insertPreviewRef.current;
+        if (
+          !prev ||
+          prev.edge !== targetEdge ||
+          prev.lineY !== visualLineY ||
+          prev.upperId !== insertion.upperId ||
+          prev.lowerId !== insertion.lowerId
+        ) {
+          insertPreviewRef.current = {
             edge: targetEdge,
             lineY: visualLineY,
             upperId: insertion.upperId,
             lowerId: insertion.lowerId,
           };
-        });
+        }
       }
     },
     [containerWidth, toEdgeContentY, computeInsertion, getDockScrollTop, lockDockHorizontalScroll]
@@ -423,7 +429,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
       setDragging(false);
       dragPositionRef.current = null;
       dragSourceRef.current = null;
-      setInsertPreview(null);
+      insertPreviewRef.current = null;
     },
     [moveWidget, snapAndReorder, setDragging, recalculateStacks, toEdgeContentY, computeInsertion]
   );
@@ -434,7 +440,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
       setDragging(false);
       dragPositionRef.current = null;
       dragSourceRef.current = null;
-      setInsertPreview(null);
+      insertPreviewRef.current = null;
     },
     [setDragging]
   );
@@ -460,10 +466,11 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
 
           {/* Snap Guides — z-20 */}
           <SnapGuides
-            isDraggingRef={isDraggingRef}
+            isDragging={isDragging}
             dragPositionRef={dragPositionRef}
+            insertPreviewRef={insertPreviewRef}
             containerRef={containerRef}
-            insertPreview={insertPreview ? { edge: insertPreview.edge, lineY: insertPreview.lineY } : null}
+            containerWidth={containerWidth}
           />
 
           {/* Left Dock Layer — z-30 */}
@@ -487,8 +494,6 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
                     widgetId={config.id}
                     titleKey={config.titleKey}
                     dockOffsetX={0}
-                    highlightTopEdge={insertPreview?.edge === 'left' && insertPreview.lowerId === config.id}
-                    highlightBottomEdge={insertPreview?.edge === 'left' && insertPreview.upperId === config.id}
                   >
                     <ContentComponent />
                   </WidgetPanel>
@@ -518,8 +523,6 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
                     widgetId={config.id}
                     titleKey={config.titleKey}
                     dockOffsetX={rightDockOffset}
-                    highlightTopEdge={insertPreview?.edge === 'right' && insertPreview.lowerId === config.id}
-                    highlightBottomEdge={insertPreview?.edge === 'right' && insertPreview.upperId === config.id}
                   >
                     <ContentComponent />
                   </WidgetPanel>

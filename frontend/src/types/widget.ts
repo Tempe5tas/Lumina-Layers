@@ -44,6 +44,7 @@ export interface WidgetStore {
 
   // 布局操作
   moveWidget: (id: WidgetId, position: { x: number; y: number }) => void;
+  setWidgetPositions: (positions: Partial<Record<WidgetId, { x: number; y: number }>>) => void;
   toggleCollapse: (id: WidgetId) => void;
   toggleVisible: (id: WidgetId) => void;
   snapToEdge: (id: WidgetId, edge: 'left' | 'right') => void;

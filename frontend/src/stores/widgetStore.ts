@@ -278,6 +278,34 @@ export const useWidgetStore = create<WidgetStore>()(
       },
 
       /**
+       * Batch update widget positions in a single store commit.
+       * 批量更新 Widget 位置，合并为一次 store 提交。
+       */
+      setWidgetPositions: (positions: Partial<Record<WidgetId, { x: number; y: number }>>) => {
+        set((state) => {
+          const entries = Object.entries(positions) as [WidgetId, { x: number; y: number }][];
+          if (entries.length === 0) return state;
+
+          let changed = false;
+          const widgets = { ...state.widgets };
+
+          for (const [id, position] of entries) {
+            const current = widgets[id];
+            if (
+              !current ||
+              (current.position.x === position.x && current.position.y === position.y)
+            ) {
+              continue;
+            }
+            widgets[id] = { ...current, position };
+            changed = true;
+          }
+
+          return changed ? { widgets } : state;
+        });
+      },
+
+      /**
        * Toggle widget collapsed state.
        * 切换 Widget 折叠状态。
        */

@@ -69,8 +69,6 @@ interface WidgetPanelProps {
   titleKey: string;
   children: ReactNode;
   dockOffsetX?: number;
-  highlightTopEdge?: boolean;
-  highlightBottomEdge?: boolean;
 }
 
 /**
@@ -91,13 +89,11 @@ export const WidgetPanel = React.memo(function WidgetPanel({
   titleKey,
   children,
   dockOffsetX = 0,
-  highlightTopEdge = false,
-  highlightBottomEdge = false,
 }: WidgetPanelProps) {
   const widget = useWidgetStore((s) => s.widgets[widgetId]);
   const toggleCollapse = useWidgetStore((s) => s.toggleCollapse);
   const setExpandedHeight = useWidgetStore((s) => s.setExpandedHeight);
-  const activeWidgetId = useWidgetStore((s) => s.activeWidgetId);
+  const isActiveDragWidget = useWidgetStore((s) => s.activeWidgetId === widgetId);
   const enableBlur = useSettingsStore((s) => s.enableBlur);
 
   // Content area ref — used by ResizeObserver to measure expanded height
@@ -135,7 +131,7 @@ export const WidgetPanel = React.memo(function WidgetPanel({
 
   if (!widget.visible) return null;
 
-  const isBeingDragged = activeWidgetId === widgetId && !!transform;
+  const isBeingDragged = isActiveDragWidget && !!transform;
   const targetHeight = isBeingDragged
     ? COLLAPSED_HEIGHT
     : (widget.collapsed ? COLLAPSED_HEIGHT : widget.expandedHeight);
@@ -198,12 +194,6 @@ export const WidgetPanel = React.memo(function WidgetPanel({
             : 'bg-gray-100/95 dark:bg-gray-900/95'
         }`}
       >
-        {highlightTopEdge && (
-          <div className="pointer-events-none absolute left-0 right-0 -top-px h-3 bg-gradient-to-b from-blue-400/30 to-transparent" />
-        )}
-        {highlightBottomEdge && (
-          <div className="pointer-events-none absolute left-0 right-0 -bottom-px h-3 bg-gradient-to-t from-blue-400/30 to-transparent" />
-        )}
         <WidgetHeader
           widgetId={widgetId}
           titleKey={titleKey}
