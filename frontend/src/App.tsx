@@ -235,8 +235,8 @@ function AppContent() {
       </header>
 
       <main className="flex-1 overflow-hidden relative">
-        {/* Converter: WidgetWorkspace + Scene3D -- kept mounted to preserve WebGL context */}
-        <div className={activeTab !== 'converter' ? 'invisible absolute inset-0' : 'h-full'}>
+        {/* Converter: WidgetWorkspace + Scene3D */}
+        <div className={activeTab !== 'converter' ? 'hidden' : 'h-full'}>
           <WidgetWorkspace>
             <SceneErrorBoundary
               fallback={
