@@ -23,7 +23,7 @@ import type {
 } from '@dnd-kit/core';
 import { useWidgetStore, WIDGET_REGISTRY, TAB_WIDGET_MAP } from '../../stores/widgetStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { computeSnap, computeStackPositions, computeDockBottomInset, resolveWidgetHeight, WIDGET_WIDTH, COLLAPSED_HEIGHT, STACK_GAP } from '../../utils/widgetUtils';
+import { computeSnap, computeStackPositions, computeDockBottomInset, resolveWidgetHeight, WIDGET_WIDTH, COLLAPSED_HEIGHT, STACK_GAP, WIDGET_PANEL_RADIUS } from '../../utils/widgetUtils';
 import { WidgetPanel } from './WidgetPanel';
 import { SnapGuides } from './SnapGuides';
 import BasicSettingsWidgetContent from './BasicSettingsWidgetContent';
@@ -613,8 +613,8 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
           <DragOverlay>
             {activeWidgetId ? (
               <div
-                className="z-40 rounded-lg border border-slate-200/80 bg-slate-50/92 opacity-90 shadow-[var(--shadow-control)] dark:border-slate-700/80 dark:bg-slate-950/92"
-                style={{ width: WIDGET_WIDTH, height: COLLAPSED_HEIGHT }}
+                className="z-40 border border-slate-200/80 bg-slate-50/92 opacity-90 shadow-[var(--shadow-control)] dark:border-slate-700/80 dark:bg-slate-950/92"
+                style={{ width: WIDGET_WIDTH, height: COLLAPSED_HEIGHT, borderRadius: WIDGET_PANEL_RADIUS }}
               >
                 <div className="px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                   {t(WIDGET_REGISTRY.find((w) => w.id === activeWidgetId)?.titleKey ?? activeWidgetId)}

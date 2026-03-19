@@ -9,6 +9,11 @@ import { useI18n } from "../i18n/context";
 import { clearCache, getPrinters, getSlicers } from "../api/system";
 import { useSettingsStore } from "../stores/settingsStore";
 import type { PrinterInfo, SlicerOption } from "../api/types";
+import {
+  filterCompatiblePrinters,
+  resolvePrinterOptionId,
+  resolveSlicerOptionId,
+} from "../utils/settingsOptionIds";
 import Button from "./ui/Button";
 import { PanelIntro, StatusBanner, centeredPanelClass, sectionCardClass } from "./ui/panelPrimitives";
 
@@ -58,13 +63,55 @@ export default function SettingsPanel() {
     return () => { cancelled = true; };
   }, []);
 
-  // Filter printers by selected slicer
-  const filteredPrinters = printers.filter(
-    (p) =>
-      !p.supported_slicers ||
-      p.supported_slicers.length === 0 ||
-      p.supported_slicers.includes(slicerSoftware)
+  const resolvedSlicerSoftware = resolveSlicerOptionId(slicerSoftware, slicers);
+  const resolvedPrinterModel = resolvePrinterOptionId(
+    printerModel,
+    printers,
+    resolvedSlicerSoftware
   );
+
+  useEffect(() => {
+    if (slicersLoading || printersLoading || slicers.length === 0 || printers.length === 0) {
+      return;
+    }
+
+    const nextSlicer = resolveSlicerOptionId(slicerSoftware, slicers);
+    const nextPrinter = resolvePrinterOptionId(printerModel, printers, nextSlicer);
+    const nextPrinterInfo = printers.find((printer) => printer.id === nextPrinter);
+
+    let didNormalize = false;
+
+    if (nextSlicer && nextSlicer !== slicerSoftware) {
+      setSlicerSoftware(nextSlicer);
+      didNormalize = true;
+    }
+
+    if (nextPrinter && nextPrinter !== printerModel) {
+      setPrinterModel(nextPrinter);
+      if (nextPrinterInfo) {
+        setLastBedLabel(`${nextPrinterInfo.bed_width}×${nextPrinterInfo.bed_depth} mm`);
+      }
+      didNormalize = true;
+    }
+
+    if (didNormalize) {
+      void syncToBackend();
+    }
+  }, [
+    printerModel,
+    printers,
+    printersLoading,
+    setLastBedLabel,
+    setPrinterModel,
+    setSlicerSoftware,
+    slicerSoftware,
+    slicers,
+    slicersLoading,
+    syncToBackend,
+  ]);
+
+  // Filter printers by selected slicer
+  const filteredPrinters = filterCompatiblePrinters(printers, resolvedSlicerSoftware);
 
   // Handle printer selection change (task 5.3 + 6.1)
   const handlePrinterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -82,13 +129,8 @@ export default function SettingsPanel() {
     const id = e.target.value;
     setSlicerSoftware(id);
     // If current printer doesn't support the new slicer, switch to first compatible
-    const compatible = printers.filter(
-      (p) =>
-        !p.supported_slicers ||
-        p.supported_slicers.length === 0 ||
-        p.supported_slicers.includes(id)
-    );
-    const currentStillValid = compatible.some((p) => p.id === printerModel);
+    const compatible = filterCompatiblePrinters(printers, id);
+    const currentStillValid = compatible.some((p) => p.id === resolvedPrinterModel);
     if (!currentStillValid && compatible.length > 0) {
       setPrinterModel(compatible[0].id);
       setLastBedLabel(
@@ -98,7 +140,7 @@ export default function SettingsPanel() {
     syncToBackend();
   };
 
-  const selectedPrinter = printers.find((p) => p.id === printerModel);
+  const selectedPrinter = printers.find((p) => p.id === resolvedPrinterModel);
 
   const handleClearCache = async () => {
     setClearing(true);
@@ -150,7 +192,7 @@ export default function SettingsPanel() {
             </span>
             <select
               id="slicer-software-select"
-              value={slicerSoftware}
+              value={resolvedSlicerSoftware}
               onChange={handleSlicerChange}
               disabled={slicersLoading}
               className="w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-wait disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-800"
@@ -168,7 +210,7 @@ export default function SettingsPanel() {
             </span>
             <select
               id="printer-model-select"
-              value={printerModel}
+              value={resolvedPrinterModel}
               onChange={handlePrinterChange}
               disabled={printersLoading}
               className="w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-wait disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-800"

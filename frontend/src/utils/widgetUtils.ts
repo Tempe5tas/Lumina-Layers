@@ -9,6 +9,9 @@ import type { WidgetId, WidgetLayoutState, SnapResult } from '../types/widget';
 /** Default widget width in pixels. (默认 Widget 宽度，单位像素) */
 export const WIDGET_WIDTH = 350;
 
+/** Shared widget corner radius in pixels. (Widget 统一圆角，单位像素) */
+export const WIDGET_PANEL_RADIUS = 8;
+
 /** Collapsed widget height — header only. (折叠状态高度，仅标题栏) */
 export const COLLAPSED_HEIGHT = 40;
 

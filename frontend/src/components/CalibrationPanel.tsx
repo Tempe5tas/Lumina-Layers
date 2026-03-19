@@ -86,6 +86,8 @@ export default function CalibrationPanel() {
               min={3}
               max={10}
               step={0.5}
+              displayDecimals={2}
+              minInputWidthCh={8}
               unit="mm"
               onChange={setBlockSize}
               disabled={blockSizeDisabled}
@@ -97,6 +99,8 @@ export default function CalibrationPanel() {
               min={0.4}
               max={2.0}
               step={0.01}
+              displayDecimals={2}
+              minInputWidthCh={8}
               unit="mm"
               onChange={setGap}
               disabled={gapDisabled}

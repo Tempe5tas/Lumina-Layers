@@ -10,6 +10,8 @@ interface SliderProps {
   onChange: (value: number) => void;
   disabled?: boolean;
   unit?: string;
+  displayDecimals?: number;
+  minInputWidthCh?: number;
 }
 
 export default function Slider({
@@ -21,36 +23,38 @@ export default function Slider({
   onChange,
   disabled = false,
   unit,
+  displayDecimals,
+  minInputWidthCh,
 }: SliderProps) {
   // 输入框的本地文本状态，编辑时不立即同步外部 value
-  const [inputText, setInputText] = useState(() => formatValue(value, step));
+  const [inputText, setInputText] = useState(() => formatValue(value, step, displayDecimals));
   const [isFocused, setIsFocused] = useState(false);
 
   // 外部 value 变化时，如果输入框没有焦点，同步显示
   useEffect(() => {
     if (!isFocused) {
-      setInputText(formatValue(value, step));
+      setInputText(formatValue(value, step, displayDecimals));
     }
-  }, [value, step, isFocused]);
+  }, [value, step, displayDecimals, isFocused]);
 
   const commitValue = useCallback(
     (text: string) => {
       const num = parseFloat(text);
       if (isNaN(num)) {
         // 无效输入，恢复为当前值
-        setInputText(formatValue(value, step));
+        setInputText(formatValue(value, step, displayDecimals));
         return;
       }
       // clamp 到 min/max 范围，并对齐 step
       const clamped = Math.min(max, Math.max(min, num));
       const aligned = Math.round(clamped / step) * step;
       // 修正浮点精度
-      const decimals = getDecimals(step);
+      const decimals = getStepDecimals(step);
       const final = parseFloat(aligned.toFixed(decimals));
       onChange(final);
-      setInputText(formatValue(final, step));
+      setInputText(formatValue(final, step, displayDecimals));
     },
-    [value, min, max, step, onChange],
+    [value, min, max, step, onChange, displayDecimals],
   );
 
   const handleBlur = () => {
@@ -63,18 +67,18 @@ export default function Slider({
       commitValue(inputText);
       (e.target as HTMLInputElement).blur();
     } else if (e.key === "Escape") {
-      setInputText(formatValue(value, step));
+      setInputText(formatValue(value, step, displayDecimals));
       (e.target as HTMLInputElement).blur();
     }
   };
 
   // 计算输入框宽度：根据 max 值的字符数 + unit
   const maxChars = Math.max(
-    formatValue(max, step).length,
-    formatValue(min, step).length,
+    formatValue(max, step, displayDecimals).length,
+    formatValue(min, step, displayDecimals).length,
     4,
   );
-  const inputWidth = `${maxChars + 1}ch`;
+  const inputWidth = `${Math.max(maxChars + 1, minInputWidthCh ?? 0)}ch`;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -123,15 +127,20 @@ export default function Slider({
   );
 }
 
-/** 根据 step 精度格式化数值 */
-function formatValue(val: number, step: number): string {
-  const decimals = getDecimals(step);
+/** 根据显示精度格式化数值 */
+function formatValue(val: number, step: number, displayDecimals?: number): string {
+  const decimals = getDisplayDecimals(step, displayDecimals);
   return val.toFixed(decimals);
 }
 
 /** 获取 step 的小数位数 */
-function getDecimals(step: number): number {
+function getStepDecimals(step: number): number {
   const s = step.toString();
   const dot = s.indexOf(".");
   return dot === -1 ? 0 : s.length - dot - 1;
+}
+
+/** 获取输入框显示所需的小数位数 */
+function getDisplayDecimals(step: number, displayDecimals?: number): number {
+  return displayDecimals ?? getStepDecimals(step);
 }
