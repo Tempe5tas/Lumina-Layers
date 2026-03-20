@@ -137,6 +137,15 @@ body {
   background-color: rgba(59, 130, 246, 0.55);
 }
 
+.dock-scrollbar-hover {
+  overflow-y: hidden;
+}
+
+.dock-scrollbar-hover:hover,
+.dock-scrollbar-hover:focus-within {
+  overflow-y: auto;
+}
+
 .dark .dock-scrollbar {
   scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
 }

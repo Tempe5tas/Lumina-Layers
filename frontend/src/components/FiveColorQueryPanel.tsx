@@ -55,7 +55,7 @@ export default function FiveColorQueryPanel() {
         description={t("five_color_desc")}
       />
 
-      <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[300px_minmax(0,1fr)_260px]">
+      <div className="grid min-h-0 flex-1 gap-5 2xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)_minmax(16rem,20rem)]">
         <section className={`${sectionCardClass} flex min-h-0 flex-col gap-4`}>
           <div className="flex flex-col gap-3">
             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50">{t("five_color_palette")}</h3>
@@ -70,7 +70,7 @@ export default function FiveColorQueryPanel() {
 
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
             {baseColors.length > 0 ? (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {baseColors.map((color) => {
                   const isSelected = selectedIndices.includes(color.index);
                   const selOrder = selectedIndices.indexOf(color.index);

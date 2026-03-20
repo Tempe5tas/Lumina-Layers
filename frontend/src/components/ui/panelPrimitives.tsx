@@ -6,7 +6,7 @@ export function cx(...classes: Array<string | false | null | undefined>) {
 }
 
 export const panelSurfaceClass =
-  "panel-surface h-full w-full overflow-auto px-5 py-4 sm:px-7 sm:py-5";
+  "panel-surface h-full w-full overflow-auto px-3 py-3 sm:px-5 sm:py-4 lg:px-7 lg:py-5";
 
 export const centeredPanelClass =
   `${panelSurfaceClass}`;
@@ -42,7 +42,7 @@ export const workstationChoiceRowDisabledClass =
   "cursor-not-allowed opacity-45";
 
 export const desktopSplitLayoutClass =
-  "grid min-h-0 gap-6 xl:grid-cols-[minmax(360px,440px)_minmax(0,1fr)] xl:items-start";
+  "grid min-h-0 gap-5 xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] xl:items-start 2xl:grid-cols-[minmax(22rem,27.5rem)_minmax(0,1fr)]";
 
 export const desktopPrimaryColumnClass =
   "flex min-w-0 flex-col gap-5";

@@ -8,6 +8,15 @@ import type { WidgetId, WidgetLayoutState, SnapResult } from '../types/widget';
 // ===== 常量 =====
 /** Default widget width in pixels. (默认 Widget 宽度，单位像素) */
 export const WIDGET_WIDTH = 350;
+export const MIN_WIDGET_WIDTH = 280;
+
+export function resolveResponsiveWidgetWidth(containerWidth: number): number {
+  if (containerWidth <= 0) return WIDGET_WIDTH;
+
+  const safeWidth = Math.max(240, containerWidth - 32);
+  const proportionalWidth = Math.round(containerWidth * 0.26);
+  return Math.min(WIDGET_WIDTH, safeWidth, Math.max(MIN_WIDGET_WIDTH, proportionalWidth));
+}
 
 /** Shared widget corner radius in pixels. (Widget 统一圆角，单位像素) */
 export const WIDGET_PANEL_RADIUS = 8;
@@ -114,7 +123,8 @@ export function computeSnap(
   widgetRight: number,
   containerWidth: number,
   widgetTop: number,
-  _threshold: number = SNAP_THRESHOLD
+  _threshold: number = SNAP_THRESHOLD,
+  widgetWidth: number = WIDGET_WIDTH
 ): SnapResult {
   void _threshold;
   // Always snap: pick the nearest edge based on widget center position
@@ -125,7 +135,7 @@ export function computeSnap(
     shouldSnap: true,
     edge: snapToLeft ? 'left' : 'right',
     snappedPosition: {
-      x: snapToLeft ? 0 : containerWidth - WIDGET_WIDTH,
+      x: snapToLeft ? 0 : containerWidth - widgetWidth,
       y: widgetTop,
     },
   };
@@ -153,11 +163,12 @@ export function computeStackPositions(
   stackWidgets: WidgetLayoutState[],
   edge: 'left' | 'right',
   containerWidth: number,
-  measuredHeights?: Map<WidgetId, number>
+  measuredHeights?: Map<WidgetId, number>,
+  widgetWidth: number = WIDGET_WIDTH
 ): Map<WidgetId, { x: number; y: number }> {
   const sorted = [...stackWidgets].sort((a, b) => a.stackOrder - b.stackOrder);
   const positions = new Map<WidgetId, { x: number; y: number }>();
-  const x = edge === 'left' ? 0 : containerWidth - WIDGET_WIDTH;
+  const x = edge === 'left' ? 0 : containerWidth - widgetWidth;
   let currentY = STACK_GAP; // top padding
 
   for (const widget of sorted) {

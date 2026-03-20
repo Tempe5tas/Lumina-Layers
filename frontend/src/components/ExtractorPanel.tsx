@@ -100,7 +100,7 @@ export default function ExtractorPanel() {
       animate={{ opacity: 1, x: 0 }}
       transition={{ type: "spring", damping: 25, stiffness: 300 }}
       data-testid="extractor-panel"
-      className={`${panelSurfaceClass} h-auto w-full overflow-y-auto xl:h-full xl:w-[400px] xl:shrink-0 2xl:w-[480px]`}
+      className={`${panelSurfaceClass} h-auto w-full overflow-y-auto 2xl:h-full 2xl:basis-[clamp(22rem,30vw,30rem)] 2xl:shrink-0`}
     >
       <div className="flex flex-col gap-5">
         <PanelIntro
@@ -164,7 +164,7 @@ export default function ExtractorPanel() {
               onClick={() => void submitExtract()}
               disabled={extractDisabled}
               loading={isLoading}
-              className="w-full lg:min-w-[180px]"
+              className="w-full lg:min-w-[12rem]"
             />
           </div>
           <div data-testid="clear-corners-button">
@@ -172,7 +172,7 @@ export default function ExtractorPanel() {
               label={t("ext_clear_corners")}
               variant="secondary"
               onClick={clearCornerPoints}
-              className="w-full lg:min-w-[180px]"
+              className="w-full lg:min-w-[12rem]"
             />
           </div>
         </section>

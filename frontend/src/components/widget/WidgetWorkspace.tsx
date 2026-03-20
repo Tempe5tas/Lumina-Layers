@@ -23,7 +23,7 @@ import type {
 } from '@dnd-kit/core';
 import { useWidgetStore, WIDGET_REGISTRY, TAB_WIDGET_MAP } from '../../stores/widgetStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { computeSnap, computeStackPositions, computeDockBottomInset, resolveWidgetHeight, WIDGET_WIDTH, COLLAPSED_HEIGHT, STACK_GAP, WIDGET_PANEL_RADIUS } from '../../utils/widgetUtils';
+import { computeSnap, computeStackPositions, computeDockBottomInset, resolveResponsiveWidgetWidth, resolveWidgetHeight, WIDGET_WIDTH, COLLAPSED_HEIGHT, STACK_GAP, WIDGET_PANEL_RADIUS } from '../../utils/widgetUtils';
 import { WidgetPanel } from './WidgetPanel';
 import { SnapGuides } from './SnapGuides';
 import BasicSettingsWidgetContent from './BasicSettingsWidgetContent';
@@ -63,8 +63,6 @@ const WIDGET_CONTENT_MAP: Record<WidgetId, ComponentType> = {
   'lut-manager': LutManagerWidgetContent,
   'five-color': FiveColorWidgetContent,
 };
-
-const DOCK_SCROLL_WIDTH = WIDGET_WIDTH + 16;
 
 interface InsertPreviewState {
   edge: 'left' | 'right';
@@ -115,6 +113,11 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
     const map = new Map(activeWidgets.map((widget) => [widget.id, widget]));
     return map;
   }, [activeWidgets]);
+  const widgetWidth = useMemo(
+    () => resolveResponsiveWidgetWidth(containerWidth || (typeof window !== 'undefined' ? window.innerWidth : WIDGET_WIDTH)),
+    [containerWidth]
+  );
+  const dockScrollWidth = widgetWidth + 16;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -169,14 +172,14 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
     for (const edge of ['left', 'right'] as const) {
       const stackWidgets = updatedTabWidgets.filter((w) => w.snapEdge === edge && w.visible);
       if (stackWidgets.length > 0) {
-        const positions = computeStackPositions(stackWidgets, edge, width, measuredHeights);
+        const positions = computeStackPositions(stackWidgets, edge, width, measuredHeights, widgetWidth);
         positions.forEach((pos, id) => {
           batchedPositions[id] = pos;
         });
       }
     }
     setWidgetPositions(batchedPositions);
-  }, [setWidgetPositions]);
+  }, [setWidgetPositions, widgetWidth]);
 
   // ResizeObserver to detect widget content height changes (e.g. checkbox
   // toggling extra options) and recalculate stack positions automatically.
@@ -335,7 +338,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
 
   const leftStackHeight = stackHeight('left');
   const rightStackHeight = stackHeight('right');
-  const rightDockOffset = Math.max(0, (containerWidth || window.innerWidth) - WIDGET_WIDTH);
+  const rightDockOffset = Math.max(0, (containerWidth || window.innerWidth) - widgetWidth);
 
   const getDockScrollTop = useCallback((edge: 'left' | 'right') => {
     return edge === 'left'
@@ -432,7 +435,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
         dragPositionRef.current = { x: newX, y: newY };
 
         const width = containerRef.current?.getBoundingClientRect().width ?? containerWidth;
-        const snap = computeSnap(newX, newX + WIDGET_WIDTH, width, newY);
+        const snap = computeSnap(newX, newX + widgetWidth, width, newY, undefined, widgetWidth);
         const targetEdge = snap.edge ?? 'left';
         const contentDropY = toEdgeContentY(newY, targetEdge);
         const insertion = computeInsertion(id, targetEdge, contentDropY);
@@ -475,13 +478,15 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
       const newX = widget.position.x + delta.x;
       const newY = widget.position.y + delta.y;
       const widgetLeft = newX;
-      const widgetRight = newX + WIDGET_WIDTH;
+      const widgetRight = newX + widgetWidth;
 
       const snap = computeSnap(
         widgetLeft,
         widgetRight,
         containerRect.width,
-        newY
+        newY,
+        undefined,
+        widgetWidth
       );
 
       const targetEdge = snap.edge!;
@@ -545,16 +550,17 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
             insertPreviewRef={insertPreviewRef}
             containerRef={containerRef}
             containerWidth={containerWidth}
+            widgetWidth={widgetWidth}
           />
 
           {/* Left Dock Layer — z-30 */}
           <div
             ref={leftDockRef}
-            className="dock-scrollbar absolute inset-y-0 left-0 z-30 overflow-y-auto overflow-x-hidden"
+              className="dock-scrollbar dock-scrollbar-hover absolute inset-y-0 left-0 z-30 overflow-x-hidden"
             onScroll={() => lockDockHorizontalScroll('left')}
             data-testid="left-dock"
             style={{
-              width: DOCK_SCROLL_WIDTH,
+              width: dockScrollWidth,
               bottom: dockBottomInsets.left,
               pointerEvents: 'none',
               overflowX: 'hidden',
@@ -570,6 +576,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
                     widgetId={config.id}
                     titleKey={config.titleKey}
                     dockOffsetX={0}
+                    width={widgetWidth}
                   >
                     <ContentComponent />
                   </WidgetPanel>
@@ -581,11 +588,11 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
           {/* Right Dock Layer — z-30 */}
           <div
             ref={rightDockRef}
-            className="dock-scrollbar absolute inset-y-0 right-0 z-30 overflow-y-auto overflow-x-hidden"
+              className="dock-scrollbar dock-scrollbar-hover absolute inset-y-0 right-0 z-30 overflow-x-hidden"
             onScroll={() => lockDockHorizontalScroll('right')}
             data-testid="right-dock"
             style={{
-              width: DOCK_SCROLL_WIDTH,
+              width: dockScrollWidth,
               bottom: dockBottomInsets.right,
               pointerEvents: 'none',
               overflowX: 'hidden',
@@ -601,6 +608,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
                     widgetId={config.id}
                     titleKey={config.titleKey}
                     dockOffsetX={rightDockOffset}
+                    width={widgetWidth}
                   >
                     <ContentComponent />
                   </WidgetPanel>
@@ -614,7 +622,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
             {activeWidgetId ? (
               <div
                 className="z-40 border border-slate-200/80 bg-slate-50/92 opacity-90 shadow-[var(--shadow-control)] dark:border-slate-700/80 dark:bg-slate-950/92"
-                style={{ width: WIDGET_WIDTH, height: COLLAPSED_HEIGHT, borderRadius: WIDGET_PANEL_RADIUS }}
+                style={{ width: widgetWidth, height: COLLAPSED_HEIGHT, borderRadius: WIDGET_PANEL_RADIUS }}
               >
                 <div className="px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                   {t(WIDGET_REGISTRY.find((w) => w.id === activeWidgetId)?.titleKey ?? activeWidgetId)}

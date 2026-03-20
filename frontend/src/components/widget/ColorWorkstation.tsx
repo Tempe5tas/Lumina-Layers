@@ -20,6 +20,7 @@ import { cx, workstationShellClass } from '../ui/panelPrimitives';
 /** Title bar height in pixels. (标题栏高度) */
 export const COLOR_WORKSTATION_TITLE_BAR_HEIGHT = 32;
 export const COLOR_WORKSTATION_WIDTH = 1500;
+const COLOR_WORKSTATION_BODY_HEIGHT = 'clamp(16rem, 30vh, 28rem)';
 
 // Chevron icons removed in favor of iOS style drag handle
 
@@ -41,7 +42,7 @@ const ColorWorkstation = forwardRef<HTMLDivElement>(function ColorWorkstation(_,
       animate={{
         height: collapsed
           ? COLOR_WORKSTATION_TITLE_BAR_HEIGHT
-          : `calc(30vh + ${COLOR_WORKSTATION_TITLE_BAR_HEIGHT}px)`,
+          : `calc(${COLOR_WORKSTATION_BODY_HEIGHT} + ${COLOR_WORKSTATION_TITLE_BAR_HEIGHT}px)`,
       }}
       transition={{ type: 'spring', damping: 25, stiffness: 350, mass: 0.8 }}
       onAnimationComplete={() => {
@@ -53,7 +54,7 @@ const ColorWorkstation = forwardRef<HTMLDivElement>(function ColorWorkstation(_,
         bottom: 0,
         left: '50%',
         transform: 'translateX(-50%)',
-        width: COLOR_WORKSTATION_WIDTH,
+        width: `min(${COLOR_WORKSTATION_WIDTH}px, calc(100vw - 24px))`,
         zIndex: 35,
         overflow: 'hidden',
       }}
@@ -82,12 +83,12 @@ const ColorWorkstation = forwardRef<HTMLDivElement>(function ColorWorkstation(_,
       {!collapsed && (
         <div
           className="flex gap-3 px-3 pb-3 pt-2"
-          style={{ height: '30vh' }}
+          style={{ height: COLOR_WORKSTATION_BODY_HEIGHT }}
         >
-          <div className="h-full w-[45%] overflow-y-auto">
+          <div className="min-w-0 basis-[42%] overflow-y-auto">
             <PalettePanel />
           </div>
-          <div className="h-full w-[55%] overflow-y-auto">
+          <div className="min-w-0 basis-[58%] overflow-y-auto">
             <LutColorGrid />
           </div>
         </div>

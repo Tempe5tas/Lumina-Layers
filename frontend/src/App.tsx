@@ -191,25 +191,17 @@ function AppContent() {
   }, []);
 
   return (
-    <div className="h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white flex flex-col overflow-hidden">
-      <header className="relative flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 z-50">
-        <div className="flex-1 flex justify-start items-center gap-3">
-          <img src="/favicon.ico" alt="Lumina Studio Logo" className="w-8 h-8 rounded" />
-          <h1 className="text-xl font-semibold tracking-tight whitespace-nowrap hidden sm:block">
+    <div className="flex h-screen flex-col overflow-hidden bg-gray-100 text-gray-900 dark:bg-gray-950 dark:text-white">
+      <header className="relative z-50 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-gray-200 px-3 py-3 dark:border-gray-800 sm:px-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:px-6 lg:py-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <img src="/favicon.ico" alt="Lumina Studio Logo" className="h-8 w-8 shrink-0 rounded" />
+          <h1 className="hidden min-w-0 truncate text-xl font-semibold tracking-tight sm:block">
             {t("app_header_title")}
           </h1>
         </div>
 
-        {/* Center: Tabs */}
-        <div className="flex-shrink-0 flex justify-center z-20">
-          <TabNavBar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
-        </div>
-
         {/* Right Side: Controls */}
-        <div className="flex-1 flex justify-end items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 lg:col-start-3 lg:row-start-1">
           {activeTab === 'converter' && <WidgetToggles />}
           <LanguageToggle />
           <ThemeToggle />
@@ -221,7 +213,7 @@ function AppContent() {
               className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-sm text-green-700 dark:bg-green-900/60 dark:text-green-300"
             >
               <span className="h-2 w-2 rounded-full bg-green-400" />
-              {t("app_backend_connected")}
+              <span className="hidden sm:inline">{t("app_backend_connected")}</span>
             </span>
           ) : (
             <span
@@ -229,15 +221,23 @@ function AppContent() {
               className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-sm text-red-700 dark:bg-red-900/60 dark:text-red-300"
             >
               <span className="h-2 w-2 rounded-full bg-red-400" />
-              {t("app_backend_unreachable")}
+              <span className="hidden sm:inline">{t("app_backend_unreachable")}</span>
             </span>
           )}
         </div>
+
+        {/* Center: Tabs */}
+        <div className="col-span-2 min-w-0 lg:col-span-1 lg:col-start-2 lg:row-start-1">
+          <TabNavBar
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        </div>
       </header>
 
-      <main className="relative flex-1 overflow-hidden bg-slate-50 dark:bg-slate-950">
+      <main className="relative flex-1 min-h-0 overflow-hidden bg-slate-50 dark:bg-slate-950">
         {/* Converter: WidgetWorkspace + Scene3D */}
-        <div className={activeTab !== 'converter' ? 'hidden' : 'h-full'}>
+        <div className={activeTab !== 'converter' ? 'hidden' : 'h-full min-h-0'}>
           <WidgetWorkspace>
             <SceneErrorBoundary
               fallback={
@@ -256,9 +256,9 @@ function AppContent() {
         {activeTab === 'calibration' && <CalibrationPanel />}
 
         {activeTab === 'extractor' && (
-          <div className="flex h-full min-h-0 flex-col xl:flex-row">
+          <div className="flex h-full min-h-0 flex-col 2xl:flex-row">
             <ExtractorPanel />
-            <div className="relative min-h-0 flex-1 overflow-hidden border-t border-slate-200/70 xl:border-l xl:border-t-0 dark:border-slate-800/80">
+            <div className="relative min-h-0 flex-1 overflow-hidden border-t border-slate-200/70 2xl:border-l 2xl:border-t-0 dark:border-slate-800/80">
               <ExtractorCanvas />
             </div>
           </div>

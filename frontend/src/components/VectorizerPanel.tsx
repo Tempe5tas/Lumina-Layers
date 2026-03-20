@@ -435,7 +435,7 @@ export default function VectorizerPanel() {
             </div>
 
             {/* Synced side-by-side comparison */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
               {/* Original */}
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -468,7 +468,7 @@ export default function VectorizerPanel() {
             </div>
 
             {/* Stats & Download */}
-            <div className="flex items-center justify-between rounded-[24px] border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/60">
+            <div className="flex flex-col gap-3 rounded-[24px] border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/60 xl:flex-row xl:items-center xl:justify-between">
               <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-300">
                 <span>
                   {t("vec.shapes")}: <strong>{result.num_shapes}</strong>

@@ -118,6 +118,9 @@ export const LUT_GRID_SIZE: Record<string, number> = {
   [ExtractorColorMode.FIVE_COLOR_EXT]: 38,
 };
 
+const EXTRACTOR_RESULT_MEDIA_MAX_HEIGHT = "clamp(16rem, 48vh, 56rem)";
+const EXTRACTOR_CANVAS_MAX_HEIGHT = "min(78vh, calc(100dvh - 12rem))";
+
 // ========== Component ==========
 
 export default function ExtractorCanvas() {
@@ -235,10 +238,10 @@ export default function ExtractorCanvas() {
     return (
       <div
         data-testid="extractor-results"
-        className="flex h-full flex-1 flex-col gap-5 overflow-auto px-5 py-4 xl:px-7"
+        className="flex h-full min-h-0 flex-1 flex-col gap-5 overflow-auto px-3 py-3 sm:px-5 sm:py-4 xl:px-7"
       >
         {/* 色卡 + LUT 预览：左右并排，等宽 */}
-        <div className="flex h-full w-full flex-col gap-6 2xl:flex-row">
+        <div className="flex h-full min-h-0 w-full flex-col gap-6 2xl:flex-row">
           {warp_view_url && (
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
@@ -248,7 +251,8 @@ export default function ExtractorCanvas() {
                 data-testid="warp-view-image"
                 src={warp_view_url}
                 alt="Warp view"
-                className="h-full max-h-[42vh] w-full object-contain xl:max-h-[48vh] 2xl:max-h-[78vh]"
+                className="h-auto w-full object-contain"
+                style={{ maxHeight: EXTRACTOR_RESULT_MEDIA_MAX_HEIGHT }}
               />
             </div>
           )}
@@ -264,7 +268,8 @@ export default function ExtractorCanvas() {
                   src={lut_preview_url}
                   alt="LUT preview"
                   onClick={handleLutPreviewClick}
-                  className="h-full max-h-[42vh] w-full cursor-crosshair object-contain xl:max-h-[48vh] 2xl:max-h-[78vh]"
+                  className="h-auto w-full cursor-crosshair object-contain"
+                  style={{ maxHeight: EXTRACTOR_RESULT_MEDIA_MAX_HEIGHT }}
                 />
                 {selectedCell && renderedRect && (() => {
                   const gridSize = LUT_GRID_SIZE[color_mode] ?? 32;
@@ -358,7 +363,7 @@ export default function ExtractorCanvas() {
 
   // ===== Canvas mode =====
   return (
-    <div className="flex h-full flex-1 flex-col items-center justify-center gap-4 px-5 py-4 xl:px-7 xl:py-5">
+    <div className="flex h-full min-h-0 flex-1 flex-col items-center justify-center gap-4 px-3 py-3 sm:px-5 sm:py-4 xl:px-7 xl:py-5">
       {/* Corner hint */}
       <p
         data-testid="corner-hint"
@@ -376,8 +381,8 @@ export default function ExtractorCanvas() {
         width={imageNaturalWidth ?? 800}
         height={imageNaturalHeight ?? 600}
         onClick={handleCanvasClick}
-        className="max-h-[82vh] max-w-full cursor-crosshair object-contain"
-        style={{ objectFit: "contain" }}
+        className="max-w-full cursor-crosshair object-contain"
+        style={{ objectFit: "contain", maxHeight: EXTRACTOR_CANVAS_MAX_HEIGHT }}
       />
     </div>
   );
